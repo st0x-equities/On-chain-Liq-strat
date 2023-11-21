@@ -1,0 +1,31 @@
+/* set up */
+
+USDT : 0xa89C795e1F7Ab10Bc50d2658364167fF6DAe84C8,
+
+/* simulating a buy and sell spread from a broker, takes pice and increases / decreases by 0.1% */
+
+buy_TSLA_brooker_price : add(get_pyth(TSLA) mul(get_pyth(TSLA) decimal18-mul(0.001 1e15))),
+Sell_TSLA_brooker_price : sub(get_pyth(TSLA) mul(get_pyth(TSLA) decimal18-mul(0.001 1e15))),
+
+mid_price : div(add(get(buy_TSLA_brooker_price) get(Sell_TSLA_brooker_price)) 2),
+
+/* Current Inventory */
+
+Token_B_inventory : erc20balanceof(token_contract, wallet_address),
+
+/* Inventory  base is used to compare current inventory levels against, this should likely update each week */
+
+Token_B_inventory_start : 2400, /* equal USD amount of TSLA, eg current price of TSLA = 300, and 10 TSLA then USD = 3000 */
+
+/* percentage change (of current inventory standings from inventory start) */
+Token_B_inventory_compare : div(sub(Token_B_inventory Token_B_inventory_start) Token_B_inventory_start),
+
+/* Liquidity variables */
+
+/* Spread will be a % away from the buy/sell broker price that starts the curve 
+the value of the spread is simply calculated by inventory compare * 0.02 */
+
+B_spread_function : mul(Token_A_inventory_compare decimal18-mul(0.02 1e15)),
+Token_B_spread : if(greater-than(add(Sell_TSLA_brooker_price mul(Sell_TSLA_brooker_price B_spread_function)) sub(mid_price mul(mid_price * decimal18-mul(0.00075 1e15)))) sub(mid_price mul(mid_price * decimal18-mul(0.00075 1e15))) add(Sell_TSLA_brooker_price mul(Sell_TSLA_brooker_price B_spread_function))),
+
+result : Token_B_inventory Token_B_spread;
